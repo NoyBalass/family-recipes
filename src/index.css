@@ -77,4 +77,9 @@ button { cursor: pointer; border: none; background: none; }
 
 .fade-in  { animation: fadeIn  0.35s ease both; }
 .slide-up { animation: slideUp 0.4s cubic-bezier(0.34,1.56,0.64,1) both; }
+
+@keyframes pulse {
+  from { opacity: 1; }
+  to   { opacity: 0.3; }
+}
 .scale-in { animation: scaleIn 0.3s ease both; }

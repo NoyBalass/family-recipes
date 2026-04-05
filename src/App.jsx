@@ -14,7 +14,7 @@ export default function App() {
   const [recipes, setRecipes]   = useState([]);
   const [loading, setLoading]   = useState(true);
   const [search, setSearch]     = useState('');
-  const [category, setCategory] = useState('הכל');
+  const [category, setCategory] = useState('');
   const [selected, setSelected] = useState(null);
   const [editing, setEditing]   = useState(null);
   const [showAdd, setShowAdd]   = useState(false);
@@ -53,7 +53,7 @@ export default function App() {
     await loadRecipes();
   }
 
-  const categories    = ['הכל', ...Array.from(new Set(recipes.map(r => r.category).filter(Boolean)))];
+  const categories    = Array.from(new Set(recipes.map(r => r.category).filter(Boolean)));
   const missingRecipes = recipes.filter(r =>
     r.category !== 'קל קל קל' &&
     (!r.ingredients || r.ingredients.length === 0) &&
@@ -62,12 +62,16 @@ export default function App() {
   const totalMissing = missingRecipes.length;
 
   const filtered = recipes.filter(r => {
-    const matchCat = category === 'הכל' || r.category === category;
+    const matchCat = !category || r.category === category;
     const q = search.trim();
     const matchSearch = !q ||
       r.name?.includes(q) ||
+      r.quote?.includes(q) ||
+      r.author?.includes(q) ||
+      r.description?.includes(q) ||
+      r.notes?.includes(q) ||
       r.ingredients?.some(i => i.includes(q)) ||
-      r.description?.includes(q);
+      r.steps?.some(s => s.includes(q));
     return matchCat && matchSearch;
   });
 

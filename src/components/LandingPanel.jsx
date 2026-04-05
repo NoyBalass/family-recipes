@@ -7,7 +7,6 @@ const CATEGORY_COLORS = {
   'עוגות עוגיות וקינוחים':     { emoji: '🍰', accent: '#E8A0A0' },
   'שונות':                     { emoji: '🥤', accent: '#C3A8D1' },
   'קל קל קל':                  { emoji: '💡', accent: '#A8D1E7' },
-  'הכל':                       { emoji: '📖', accent: '#F4A261' },
 };
 
 const INSTRUCTIONS = [
@@ -47,7 +46,7 @@ export default function LandingPanel({
           return (
             <button
               key={cat}
-              onClick={() => onCategoryChange(cat)}
+              onClick={() => onCategoryChange(cat === category ? '' : cat)}
               style={{
                 display: 'flex', alignItems: 'center', gap: '0.35rem',
                 padding: '0.4rem 0.9rem', borderRadius: '99px',

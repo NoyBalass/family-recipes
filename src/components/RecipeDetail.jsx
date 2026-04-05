@@ -1,13 +1,80 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 
 export default function RecipeDetail({ recipe, onClose, onEdit, onDelete }) {
+  const [cookingMode, setCookingMode]   = useState(false);
+  const [wakeLockOn,  setWakeLockOn]    = useState(false);
+  const [timerSecs,   setTimerSecs]     = useState(5 * 60); // default 5 min
+  const [timerRunning, setTimerRunning] = useState(false);
+  const [timerDone,   setTimerDone]     = useState(false);
+  const wakeLockRef   = useRef(null);
+  const timerRef      = useRef(null);
+
+  const ingredients = recipe.ingredients || [];
+  const steps       = recipe.steps || [];
+
+  // ── Scroll lock ────────────────────────────────────────────────────────────
   useEffect(() => {
     document.body.style.overflow = 'hidden';
     return () => { document.body.style.overflow = ''; };
   }, []);
 
-  const ingredients = recipe.ingredients || [];
-  const steps = recipe.steps || [];
+  // ── Wake Lock ──────────────────────────────────────────────────────────────
+  async function acquireWakeLock() {
+    if (!('wakeLock' in navigator)) return;
+    try {
+      wakeLockRef.current = await navigator.wakeLock.request('screen');
+      wakeLockRef.current.addEventListener('release', () => setWakeLockOn(false));
+      setWakeLockOn(true);
+    } catch { /* browser may deny */ }
+  }
+
+  function releaseWakeLock() {
+    if (wakeLockRef.current) {
+      wakeLockRef.current.release();
+      wakeLockRef.current = null;
+    }
+    setWakeLockOn(false);
+  }
+
+  function toggleCookingMode() {
+    if (cookingMode) {
+      releaseWakeLock();
+      clearInterval(timerRef.current);
+      setTimerRunning(false);
+    } else {
+      acquireWakeLock();
+    }
+    setCookingMode(v => !v);
+  }
+
+  // Clean up wake lock when modal closes
+  useEffect(() => () => { releaseWakeLock(); clearInterval(timerRef.current); }, []);
+
+  // ── Timer ──────────────────────────────────────────────────────────────────
+  const tick = useCallback(() => {
+    setTimerSecs(s => {
+      if (s <= 1) {
+        clearInterval(timerRef.current);
+        setTimerRunning(false);
+        setTimerDone(true);
+        return 0;
+      }
+      return s - 1;
+    });
+  }, []);
+
+  function startTimer()  {
+    setTimerDone(false);
+    timerRef.current = setInterval(tick, 1000);
+    setTimerRunning(true);
+  }
+  function pauseTimer()  { clearInterval(timerRef.current); setTimerRunning(false); }
+  function resetTimer()  { clearInterval(timerRef.current); setTimerRunning(false); setTimerDone(false); setTimerSecs(5 * 60); }
+  function addMinute()   { if (!timerRunning) setTimerSecs(s => s + 60); }
+  function subMinute()   { if (!timerRunning) setTimerSecs(s => Math.max(60, s - 60)); }
+
+  const mm  = String(Math.floor(timerSecs / 60)).padStart(2, '0');
+  const ss  = String(timerSecs % 60).padStart(2, '0');
 
   return (
     <div
@@ -24,20 +91,21 @@ export default function RecipeDetail({ recipe, onClose, onEdit, onDelete }) {
         onClick={e => e.stopPropagation()}
         className="slide-up"
         style={{
-          background: 'var(--surface)',
+          background: cookingMode ? '#1a1208' : 'var(--surface)',
           borderRadius: '28px 28px 0 0',
           width: '100%', maxWidth: '640px', margin: '0 auto',
           maxHeight: '92vh', overflowY: 'auto',
           padding: '0 0 3rem',
+          transition: 'background 0.4s',
         }}
       >
         {/* Handle */}
         <div style={{ display: 'flex', justifyContent: 'center', padding: '0.875rem 0 0' }}>
-          <div style={{ width: '40px', height: '4px', borderRadius: '99px', background: 'var(--peach-light)' }} />
+          <div style={{ width: '40px', height: '4px', borderRadius: '99px', background: cookingMode ? '#5a3a1a' : 'var(--peach-light)' }} />
         </div>
 
         {/* Header */}
-        <div style={{ padding: '1rem 1.5rem 1.25rem', borderBottom: '2px solid var(--surface2)' }}>
+        <div style={{ padding: '1rem 1.5rem 1rem', borderBottom: `2px solid ${cookingMode ? '#2a1a08' : 'var(--surface2)'}` }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem' }}>
             <div style={{ flex: 1 }}>
               {recipe.category && (
@@ -50,67 +118,127 @@ export default function RecipeDetail({ recipe, onClose, onEdit, onDelete }) {
                   {recipe.category}
                 </span>
               )}
-
-              {/* Quote */}
               {recipe.quote && (
                 <p style={{
-                  fontSize: '0.85rem', fontStyle: 'italic', color: 'var(--peach)',
+                  fontSize: '0.9rem', fontStyle: 'italic',
+                  color: cookingMode ? '#f4a261' : 'var(--peach)',
                   marginBottom: '0.4rem', lineHeight: 1.4,
                 }}>
                   ❝ {recipe.quote} ❞
                 </p>
               )}
-
               <h2 style={{
                 fontSize: 'clamp(1.4rem, 5vw, 1.9rem)', fontWeight: 900,
-                color: 'var(--text)', lineHeight: 1.2, textAlign: 'right',
-                marginBottom: '0.2rem',
+                color: cookingMode ? '#fff' : 'var(--text)',
+                lineHeight: 1.2, textAlign: 'right', marginBottom: '0.2rem',
               }}>
                 {recipe.name}
               </h2>
-
               {recipe.author && (
-                <p style={{ fontSize: '0.85rem', color: 'var(--text-mid)', fontWeight: 700, marginBottom: '0.25rem' }}>
+                <p style={{ fontSize: '0.85rem', color: cookingMode ? '#c8a87a' : 'var(--text-mid)', fontWeight: 700 }}>
                   👨‍🍳 {recipe.author}
-                </p>
-              )}
-
-              {recipe.description && (
-                <p style={{ color: 'var(--text-mid)', fontSize: '0.9rem', marginTop: '0.4rem', lineHeight: 1.5 }}>
-                  {recipe.description}
                 </p>
               )}
             </div>
             <button onClick={onClose} style={{
-              background: 'var(--surface2)', borderRadius: '50%',
+              background: cookingMode ? '#2a1a08' : 'var(--surface2)', borderRadius: '50%',
               width: '36px', height: '36px', fontSize: '1rem',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              flexShrink: 0, color: 'var(--text-mid)', fontWeight: 900,
+              flexShrink: 0, color: cookingMode ? '#f4a261' : 'var(--text-mid)', fontWeight: 900,
             }}>✕</button>
           </div>
+        </div>
 
-          {/* Meta */}
-          <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.875rem', flexWrap: 'wrap' }}>
-            {recipe.prepTime && <MetaBadge emoji="⏱️" label={recipe.prepTime} />}
-            {recipe.servings && <MetaBadge emoji="👥" label={`${recipe.servings} מנות`} />}
-            {recipe.difficulty && <MetaBadge emoji="📊" label={recipe.difficulty} />}
+        {/* ── Cooking mode + Timer toolbar ─────────────────────────────────── */}
+        <div style={{
+          display: 'flex', gap: '0.6rem', padding: '0.75rem 1.5rem',
+          borderBottom: `1.5px solid ${cookingMode ? '#2a1a08' : 'var(--surface2)'}`,
+          flexWrap: 'wrap', alignItems: 'center',
+        }}>
+          {/* Cooking mode toggle */}
+          <button
+            onClick={toggleCookingMode}
+            style={{
+              display: 'flex', alignItems: 'center', gap: '0.4rem',
+              padding: '0.45rem 1rem', borderRadius: '99px',
+              background: cookingMode ? '#f4a261' : 'var(--surface2)',
+              color:      cookingMode ? '#fff'    : 'var(--text-mid)',
+              fontWeight: 800, fontSize: '0.82rem',
+              border: cookingMode ? 'none' : '1.5px solid var(--border)',
+              transition: 'all 0.2s',
+            }}
+          >
+            🍳 {cookingMode ? 'מצב בישול פעיל' : 'מצב בישול'}
+            {wakeLockOn && <span style={{ fontSize: '0.7rem', opacity: 0.8 }}>• מסך דלוק</span>}
+          </button>
+
+          {/* Timer */}
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: '0.35rem',
+            background: cookingMode ? '#2a1a08' : 'var(--bg)',
+            borderRadius: '99px', padding: '0.3rem 0.6rem',
+            border: `1.5px solid ${timerDone ? '#E8A0A0' : cookingMode ? '#3a2a18' : 'var(--border)'}`,
+          }}>
+            <span style={{ fontSize: '0.82rem' }}>⏱️</span>
+
+            {/* - min */}
+            <button onClick={subMinute} style={{ fontWeight: 900, fontSize: '0.9rem', color: 'var(--text-dim)', padding: '0 0.1rem', lineHeight: 1 }}>−</button>
+
+            {/* Time display */}
+            <span style={{
+              fontWeight: 900, fontSize: '1rem', fontVariantNumeric: 'tabular-nums',
+              color: timerDone ? '#E8A0A0' : cookingMode ? '#f4a261' : 'var(--text)',
+              minWidth: '3.2rem', textAlign: 'center',
+              animation: timerDone ? 'pulse 0.6s infinite alternate' : 'none',
+            }}>
+              {mm}:{ss}
+            </span>
+
+            {/* + min */}
+            <button onClick={addMinute} style={{ fontWeight: 900, fontSize: '0.9rem', color: 'var(--text-dim)', padding: '0 0.1rem', lineHeight: 1 }}>+</button>
+
+            {/* Start / Pause */}
+            {!timerRunning ? (
+              <button
+                onClick={startTimer}
+                style={{
+                  background: '#7DAF7D', color: '#fff',
+                  borderRadius: '99px', padding: '0.2rem 0.6rem',
+                  fontWeight: 800, fontSize: '0.75rem',
+                }}>▶</button>
+            ) : (
+              <button
+                onClick={pauseTimer}
+                style={{
+                  background: '#F4A261', color: '#fff',
+                  borderRadius: '99px', padding: '0.2rem 0.6rem',
+                  fontWeight: 800, fontSize: '0.75rem',
+                }}>⏸</button>
+            )}
+
+            {/* Reset */}
+            <button
+              onClick={resetTimer}
+              style={{ color: 'var(--text-dim)', fontSize: '0.75rem', padding: '0 0.1rem' }}>↺</button>
           </div>
         </div>
 
         {/* Ingredients */}
         {ingredients.length > 0 && (
           <section style={{ padding: '1.25rem 1.5rem' }}>
-            <h3 style={{ fontSize: '1rem', fontWeight: 900, color: 'var(--peach-dim)', marginBottom: '0.875rem' }}>
+            <h3 style={{ fontSize: '1rem', fontWeight: 900, color: cookingMode ? '#f4a261' : 'var(--peach-dim)', marginBottom: '0.875rem' }}>
               🧂 מרכיבים
             </h3>
             <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
               {ingredients.map((ing, i) => (
                 <li key={i} style={{
                   display: 'flex', alignItems: 'flex-start', gap: '0.6rem',
-                  padding: '0.45rem 0.75rem', background: 'var(--surface2)',
-                  borderRadius: '10px', fontSize: '0.9rem', fontWeight: 600, color: 'var(--text)',
+                  padding: '0.45rem 0.75rem',
+                  background: cookingMode ? '#2a1a08' : 'var(--surface2)',
+                  borderRadius: '10px', fontSize: cookingMode ? '1.05rem' : '0.9rem',
+                  fontWeight: 600, color: cookingMode ? '#fff' : 'var(--text)',
                 }}>
-                  <span style={{ color: 'var(--peach)', fontWeight: 900, flexShrink: 0, marginTop: '2px' }}>•</span>
+                  <span style={{ color: '#f4a261', fontWeight: 900, flexShrink: 0, marginTop: '2px' }}>•</span>
                   {ing}
                 </li>
               ))}
@@ -121,60 +249,59 @@ export default function RecipeDetail({ recipe, onClose, onEdit, onDelete }) {
         {/* Steps */}
         {steps.length > 0 && (
           <section style={{ padding: '0 1.5rem 1rem' }}>
-            <h3 style={{ fontSize: '1rem', fontWeight: 900, color: 'var(--peach-dim)', marginBottom: '0.875rem' }}>
+            <h3 style={{ fontSize: '1rem', fontWeight: 900, color: cookingMode ? '#f4a261' : 'var(--peach-dim)', marginBottom: '0.875rem' }}>
               👩‍🍳 הכנה
             </h3>
             <ol style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               {steps.map((step, i) => (
                 <li key={i} style={{ display: 'flex', gap: '0.875rem', alignItems: 'flex-start' }}>
                   <span style={{
-                    background: 'var(--peach)', color: '#fff', borderRadius: '50%',
-                    width: '26px', height: '26px', display: 'flex', alignItems: 'center',
-                    justifyContent: 'center', fontWeight: 900, fontSize: '0.8rem', flexShrink: 0, marginTop: '2px',
+                    background: '#f4a261', color: '#fff', borderRadius: '50%',
+                    width: '28px', height: '28px', display: 'flex', alignItems: 'center',
+                    justifyContent: 'center', fontWeight: 900, fontSize: cookingMode ? '1rem' : '0.8rem',
+                    flexShrink: 0, marginTop: '2px',
                   }}>{i + 1}</span>
-                  <p style={{ fontSize: '0.9rem', color: 'var(--text)', lineHeight: 1.6, fontWeight: 500, paddingTop: '2px' }}>{step}</p>
+                  <p style={{
+                    fontSize: cookingMode ? '1.1rem' : '0.9rem',
+                    color: cookingMode ? '#fff' : 'var(--text)',
+                    lineHeight: 1.6, fontWeight: 500, paddingTop: '2px',
+                  }}>{step}</p>
                 </li>
               ))}
             </ol>
           </section>
         )}
 
-        {/* Notes */}
+        {/* Notes / קל קל קל */}
         {recipe.notes && (
           <section style={{ padding: '0 1.5rem 1rem' }}>
-            <div style={{ background: 'var(--yellow-light)', borderRadius: '16px', padding: '1rem', border: '1.5px solid var(--yellow)' }}>
-              <p style={{ fontSize: '0.82rem', fontWeight: 800, color: '#9A7A20', marginBottom: '0.35rem' }}>💡 טיפים והערות</p>
-              <p style={{ fontSize: '0.875rem', color: 'var(--text)', lineHeight: 1.6 }}>{recipe.notes}</p>
+            <div style={{
+              background: cookingMode ? '#2a1808' : 'var(--yellow-light)',
+              borderRadius: '16px', padding: '1rem',
+              border: `1.5px solid ${cookingMode ? '#5a3a10' : 'var(--yellow)'}`,
+            }}>
+              <p style={{ fontSize: '0.82rem', fontWeight: 800, color: '#9A7A20', marginBottom: '0.35rem' }}>💡 קל קל קל</p>
+              <p style={{ fontSize: cookingMode ? '1rem' : '0.875rem', color: cookingMode ? '#f4c27a' : 'var(--text)', lineHeight: 1.6 }}>{recipe.notes}</p>
             </div>
           </section>
         )}
 
         {/* Actions */}
-        <div style={{ display: 'flex', gap: '0.75rem', padding: '0.5rem 1.5rem 0', justifyContent: 'flex-end' }}>
-          <button onClick={onEdit} style={{
-            background: 'var(--peach-light)', color: 'var(--peach-dim)',
-            borderRadius: '99px', padding: '0.55rem 1.25rem',
-            fontWeight: 800, fontSize: '0.875rem',
-          }}>✏️ עריכה</button>
-          <button onClick={() => { if (window.confirm('למחוק את המתכון?')) onDelete(); }} style={{
-            background: 'var(--rose-light)', color: 'var(--rose)',
-            borderRadius: '99px', padding: '0.55rem 1.25rem',
-            fontWeight: 800, fontSize: '0.875rem',
-          }}>🗑️ מחיקה</button>
-        </div>
+        {!cookingMode && (
+          <div style={{ display: 'flex', gap: '0.75rem', padding: '0.5rem 1.5rem 0', justifyContent: 'flex-end' }}>
+            <button onClick={onEdit} style={{
+              background: 'var(--peach-light)', color: 'var(--peach-dim)',
+              borderRadius: '99px', padding: '0.55rem 1.25rem',
+              fontWeight: 800, fontSize: '0.875rem',
+            }}>✏️ עריכה</button>
+            <button onClick={() => { if (window.confirm('למחוק את המתכון?')) onDelete(); }} style={{
+              background: 'var(--rose-light)', color: 'var(--rose)',
+              borderRadius: '99px', padding: '0.55rem 1.25rem',
+              fontWeight: 800, fontSize: '0.875rem',
+            }}>🗑️ מחיקה</button>
+          </div>
+        )}
       </div>
     </div>
-  );
-}
-
-function MetaBadge({ emoji, label }) {
-  return (
-    <span style={{
-      display: 'flex', alignItems: 'center', gap: '0.3rem',
-      background: 'var(--surface2)', borderRadius: '99px',
-      padding: '0.3rem 0.75rem', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-mid)',
-    }}>
-      {emoji} {label}
-    </span>
   );
 }
