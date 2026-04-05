@@ -1,5 +1,45 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 
+function SectionHeading({ text, cookingMode }) {
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: '0.5rem',
+      marginTop: '0.5rem', marginBottom: '0.1rem',
+    }}>
+      <span style={{
+        flex: 1, height: '2px', borderRadius: '99px',
+        background: cookingMode ? '#3a2a18' : 'var(--peach-light)',
+      }} />
+      <p style={{
+        fontSize: '0.82rem', fontWeight: 900, letterSpacing: '0.04em',
+        color: cookingMode ? '#f4a261' : 'var(--peach-dim)',
+        whiteSpace: 'nowrap',
+      }}>
+        {text.replace(/:$/, '')}
+      </p>
+      <span style={{
+        flex: 1, height: '2px', borderRadius: '99px',
+        background: cookingMode ? '#3a2a18' : 'var(--peach-light)',
+      }} />
+    </div>
+  );
+}
+
+function BulletRow({ text, cookingMode }) {
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'flex-start', gap: '0.6rem',
+      padding: '0.45rem 0.75rem',
+      background: cookingMode ? '#2a1a08' : 'var(--surface2)',
+      borderRadius: '10px', fontSize: cookingMode ? '1.05rem' : '0.9rem',
+      fontWeight: 600, color: cookingMode ? '#fff' : 'var(--text)',
+    }}>
+      <span style={{ color: '#f4a261', fontWeight: 900, flexShrink: 0, marginTop: '2px' }}>•</span>
+      {text}
+    </div>
+  );
+}
+
 export default function RecipeDetail({ recipe, onClose, onEdit, onDelete }) {
   const [cookingMode, setCookingMode]   = useState(false);
   const [wakeLockOn,  setWakeLockOn]    = useState(false);
@@ -229,20 +269,15 @@ export default function RecipeDetail({ recipe, onClose, onEdit, onDelete }) {
             <h3 style={{ fontSize: '1rem', fontWeight: 900, color: cookingMode ? '#f4a261' : 'var(--peach-dim)', marginBottom: '0.875rem' }}>
               🧂 מרכיבים
             </h3>
-            <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
-              {ingredients.map((ing, i) => (
-                <li key={i} style={{
-                  display: 'flex', alignItems: 'flex-start', gap: '0.6rem',
-                  padding: '0.45rem 0.75rem',
-                  background: cookingMode ? '#2a1a08' : 'var(--surface2)',
-                  borderRadius: '10px', fontSize: cookingMode ? '1.05rem' : '0.9rem',
-                  fontWeight: 600, color: cookingMode ? '#fff' : 'var(--text)',
-                }}>
-                  <span style={{ color: '#f4a261', fontWeight: 900, flexShrink: 0, marginTop: '2px' }}>•</span>
-                  {ing}
-                </li>
-              ))}
-            </ul>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+              {ingredients.map((ing, i) =>
+                ing.endsWith(':') ? (
+                  <SectionHeading key={i} text={ing} cookingMode={cookingMode} />
+                ) : (
+                  <BulletRow key={i} text={ing} cookingMode={cookingMode} />
+                )
+              )}
+            </div>
           </section>
         )}
 
@@ -252,23 +287,32 @@ export default function RecipeDetail({ recipe, onClose, onEdit, onDelete }) {
             <h3 style={{ fontSize: '1rem', fontWeight: 900, color: cookingMode ? '#f4a261' : 'var(--peach-dim)', marginBottom: '0.875rem' }}>
               👩‍🍳 הכנה
             </h3>
-            <ol style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              {steps.map((step, i) => (
-                <li key={i} style={{ display: 'flex', gap: '0.875rem', alignItems: 'flex-start' }}>
-                  <span style={{
-                    background: '#f4a261', color: '#fff', borderRadius: '50%',
-                    width: '28px', height: '28px', display: 'flex', alignItems: 'center',
-                    justifyContent: 'center', fontWeight: 900, fontSize: cookingMode ? '1rem' : '0.8rem',
-                    flexShrink: 0, marginTop: '2px',
-                  }}>{i + 1}</span>
-                  <p style={{
-                    fontSize: cookingMode ? '1.1rem' : '0.9rem',
-                    color: cookingMode ? '#fff' : 'var(--text)',
-                    lineHeight: 1.6, fontWeight: 500, paddingTop: '2px',
-                  }}>{step}</p>
-                </li>
-              ))}
-            </ol>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+              {(() => {
+                let stepNum = 0;
+                return steps.map((step, i) => {
+                  if (step.endsWith(':')) {
+                    return <SectionHeading key={i} text={step} cookingMode={cookingMode} />;
+                  }
+                  stepNum++;
+                  return (
+                    <div key={i} style={{ display: 'flex', gap: '0.875rem', alignItems: 'flex-start' }}>
+                      <span style={{
+                        background: '#f4a261', color: '#fff', borderRadius: '50%',
+                        width: '28px', height: '28px', display: 'flex', alignItems: 'center',
+                        justifyContent: 'center', fontWeight: 900, fontSize: cookingMode ? '1rem' : '0.8rem',
+                        flexShrink: 0, marginTop: '2px',
+                      }}>{stepNum}</span>
+                      <p style={{
+                        fontSize: cookingMode ? '1.1rem' : '0.9rem',
+                        color: cookingMode ? '#fff' : 'var(--text)',
+                        lineHeight: 1.6, fontWeight: 500, paddingTop: '2px',
+                      }}>{step}</p>
+                    </div>
+                  );
+                });
+              })()}
+            </div>
           </section>
         )}
 
