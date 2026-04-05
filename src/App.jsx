@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, orderBy } from 'firebase/firestore';
 import { db } from './firebase';
 import RecipeCard from './components/RecipeCard';
@@ -6,18 +6,17 @@ import RecipeDetail from './components/RecipeDetail';
 import AddEditRecipe from './components/AddEditRecipe';
 import Header from './components/Header';
 
+const PAGE_SIZE = 12;
+
 export default function App() {
-  const [recipes, setRecipes]           = useState([]);
-  const [loading, setLoading]           = useState(true);
-  const [search, setSearch]             = useState('');
-  const [category, setCategory]         = useState('הכל');
-  const [selected, setSelected]         = useState(null);
-  const [editing, setEditing]           = useState(null);
-  const [showAdd, setShowAdd]           = useState(false);
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [dragStartX, setDragStartX]     = useState(null);
-  const [dragDeltaX, setDragDeltaX]     = useState(0);
-  const [isDragging, setIsDragging]     = useState(false);
+  const [recipes, setRecipes]   = useState([]);
+  const [loading, setLoading]   = useState(true);
+  const [search, setSearch]     = useState('');
+  const [category, setCategory] = useState('הכל');
+  const [selected, setSelected] = useState(null);
+  const [editing, setEditing]   = useState(null);
+  const [showAdd, setShowAdd]   = useState(false);
+  const [page, setPage]         = useState(0);
 
   async function loadRecipes() {
     setLoading(true);
@@ -63,29 +62,13 @@ export default function App() {
     return matchCat && matchSearch;
   });
 
-  useEffect(() => { setCurrentIndex(0); }, [search, category]);
+  useEffect(() => { setPage(0); }, [search, category]);
 
-  function onPointerDown(clientX) {
-    setDragStartX(clientX);
-    setIsDragging(true);
-    setDragDeltaX(0);
-  }
-  function onPointerMove(clientX) {
-    if (!isDragging || dragStartX === null) return;
-    setDragDeltaX(clientX - dragStartX);
-  }
-  function onPointerUp() {
-    if (!isDragging) return;
-    const threshold = 60;
-    if (dragDeltaX > threshold && currentIndex > 0) setCurrentIndex(i => i - 1);
-    else if (dragDeltaX < -threshold && currentIndex < filtered.length - 1) setCurrentIndex(i => i + 1);
-    setIsDragging(false);
-    setDragStartX(null);
-    setDragDeltaX(0);
-  }
+  const totalPages  = Math.ceil(filtered.length / PAGE_SIZE);
+  const pageRecipes = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg)', paddingBottom: '3rem' }}>
+    <div dir="rtl" style={{ minHeight: '100vh', background: 'var(--bg)', paddingBottom: '4rem' }}>
       <Header
         search={search}
         onSearch={setSearch}
@@ -124,53 +107,63 @@ export default function App() {
         </div>
       ) : (
         <>
-          <div style={{ textAlign: 'center', color: 'var(--text-dim)', fontSize: '0.82rem', fontWeight: 700, padding: '0.5rem 0 0.25rem' }}>
-            {currentIndex + 1} / {filtered.length}
-          </div>
+          {/* Results count */}
+          <p style={{ textAlign: 'center', color: 'var(--text-dim)', fontSize: '0.8rem', fontWeight: 700, padding: '0.25rem 0' }}>
+            {filtered.length} מתכונים
+          </p>
 
-          {/* Swipeable slider */}
-          <div
-            onMouseDown={e => onPointerDown(e.clientX)}
-            onMouseMove={e => onPointerMove(e.clientX)}
-            onMouseUp={onPointerUp}
-            onMouseLeave={onPointerUp}
-            onTouchStart={e => onPointerDown(e.touches[0].clientX)}
-            onTouchMove={e => onPointerMove(e.touches[0].clientX)}
-            onTouchEnd={onPointerUp}
-            style={{
-              overflow: 'hidden', padding: '0.75rem 1.25rem 1.25rem',
-              userSelect: 'none', touchAction: 'pan-y',
-              cursor: isDragging ? 'grabbing' : 'grab',
-            }}
-          >
-            <div style={{
-              display: 'flex',
-              transition: isDragging ? 'none' : 'transform 0.4s cubic-bezier(0.4,0,0.2,1)',
-              transform: `translateX(calc(${currentIndex * -100}% + ${dragDeltaX}px))`,
-            }}>
-              {filtered.map((recipe, i) => (
-                <div key={recipe.id} style={{ minWidth: '100%', flexShrink: 0, padding: '0 0.25rem' }}>
-                  <RecipeCard
-                    recipe={recipe}
-                    onClick={() => setSelected(recipe)}
-                    active={i === currentIndex}
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Dot indicators */}
-          <div style={{ display: 'flex', justifyContent: 'center', gap: '6px', paddingTop: '0.25rem' }}>
-            {filtered.slice(0, 30).map((_, i) => (
-              <button key={i} onClick={() => setCurrentIndex(i)} style={{
-                width: i === currentIndex ? '22px' : '7px', height: '7px',
-                borderRadius: '99px', padding: 0,
-                background: i === currentIndex ? 'var(--peach)' : 'var(--peach-light)',
-                transition: 'all 0.3s cubic-bezier(0.4,0,0.2,1)',
-              }} />
+          {/* 2-column grid */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(2, 1fr)',
+            gap: '0.85rem',
+            padding: '0.75rem 1rem 1rem',
+          }}>
+            {pageRecipes.map(recipe => (
+              <RecipeCard
+                key={recipe.id}
+                recipe={recipe}
+                onClick={() => setSelected(recipe)}
+              />
             ))}
           </div>
+
+          {/* Prev / Next pagination */}
+          {totalPages > 1 && (
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '1rem', padding: '0.5rem 1rem 1rem' }}>
+              <button
+                onClick={() => { setPage(p => p - 1); window.scrollTo(0, 0); }}
+                disabled={page === 0}
+                style={{
+                  background: page === 0 ? 'var(--surface2)' : 'var(--peach)',
+                  color: page === 0 ? 'var(--text-dim)' : '#fff',
+                  borderRadius: '99px', padding: '0.5rem 1.25rem',
+                  fontWeight: 800, fontSize: '1rem',
+                  opacity: page === 0 ? 0.4 : 1,
+                  cursor: page === 0 ? 'default' : 'pointer',
+                  transition: 'all 0.2s',
+                }}>
+                ▶
+              </button>
+              <span style={{ fontWeight: 700, color: 'var(--text-mid)', fontSize: '0.85rem' }}>
+                {page + 1} / {totalPages}
+              </span>
+              <button
+                onClick={() => { setPage(p => p + 1); window.scrollTo(0, 0); }}
+                disabled={page === totalPages - 1}
+                style={{
+                  background: page === totalPages - 1 ? 'var(--surface2)' : 'var(--peach)',
+                  color: page === totalPages - 1 ? 'var(--text-dim)' : '#fff',
+                  borderRadius: '99px', padding: '0.5rem 1.25rem',
+                  fontWeight: 800, fontSize: '1rem',
+                  opacity: page === totalPages - 1 ? 0.4 : 1,
+                  cursor: page === totalPages - 1 ? 'default' : 'pointer',
+                  transition: 'all 0.2s',
+                }}>
+                ◀
+              </button>
+            </div>
+          )}
         </>
       )}
 

@@ -27,7 +27,7 @@ export default function RecipeDetail({ recipe, onClose, onEdit, onDelete }) {
           background: 'var(--surface)',
           borderRadius: '28px 28px 0 0',
           width: '100%', maxWidth: '640px', margin: '0 auto',
-          maxHeight: '90vh', overflowY: 'auto',
+          maxHeight: '92vh', overflowY: 'auto',
           padding: '0 0 3rem',
         }}
       >
@@ -50,9 +50,31 @@ export default function RecipeDetail({ recipe, onClose, onEdit, onDelete }) {
                   {recipe.category}
                 </span>
               )}
-              <h2 style={{ fontSize: 'clamp(1.4rem, 5vw, 1.8rem)', fontWeight: 900, color: 'var(--text)', lineHeight: 1.2, textAlign: 'right' }}>
+
+              {/* Quote */}
+              {recipe.quote && (
+                <p style={{
+                  fontSize: '0.85rem', fontStyle: 'italic', color: 'var(--peach)',
+                  marginBottom: '0.4rem', lineHeight: 1.4,
+                }}>
+                  ❝ {recipe.quote} ❞
+                </p>
+              )}
+
+              <h2 style={{
+                fontSize: 'clamp(1.4rem, 5vw, 1.9rem)', fontWeight: 900,
+                color: 'var(--text)', lineHeight: 1.2, textAlign: 'right',
+                marginBottom: '0.2rem',
+              }}>
                 {recipe.name}
               </h2>
+
+              {recipe.author && (
+                <p style={{ fontSize: '0.85rem', color: 'var(--text-mid)', fontWeight: 700, marginBottom: '0.25rem' }}>
+                  👨‍🍳 {recipe.author}
+                </p>
+              )}
+
               {recipe.description && (
                 <p style={{ color: 'var(--text-mid)', fontSize: '0.9rem', marginTop: '0.4rem', lineHeight: 1.5 }}>
                   {recipe.description}
@@ -68,7 +90,7 @@ export default function RecipeDetail({ recipe, onClose, onEdit, onDelete }) {
           </div>
 
           {/* Meta */}
-          <div style={{ display: 'flex', gap: '1rem', marginTop: '0.875rem', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.875rem', flexWrap: 'wrap' }}>
             {recipe.prepTime && <MetaBadge emoji="⏱️" label={recipe.prepTime} />}
             {recipe.servings && <MetaBadge emoji="👥" label={`${recipe.servings} מנות`} />}
             {recipe.difficulty && <MetaBadge emoji="📊" label={recipe.difficulty} />}
@@ -78,17 +100,17 @@ export default function RecipeDetail({ recipe, onClose, onEdit, onDelete }) {
         {/* Ingredients */}
         {ingredients.length > 0 && (
           <section style={{ padding: '1.25rem 1.5rem' }}>
-            <h3 style={{ fontSize: '1rem', fontWeight: 900, color: 'var(--peach-dim)', marginBottom: '0.875rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <h3 style={{ fontSize: '1rem', fontWeight: 900, color: 'var(--peach-dim)', marginBottom: '0.875rem' }}>
               🧂 מרכיבים
             </h3>
-            <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
               {ingredients.map((ing, i) => (
                 <li key={i} style={{
-                  display: 'flex', alignItems: 'center', gap: '0.6rem',
-                  padding: '0.5rem 0.75rem', background: 'var(--surface2)',
-                  borderRadius: '12px', fontSize: '0.9rem', fontWeight: 600, color: 'var(--text)',
+                  display: 'flex', alignItems: 'flex-start', gap: '0.6rem',
+                  padding: '0.45rem 0.75rem', background: 'var(--surface2)',
+                  borderRadius: '10px', fontSize: '0.9rem', fontWeight: 600, color: 'var(--text)',
                 }}>
-                  <span style={{ color: 'var(--peach)', fontWeight: 900, flexShrink: 0 }}>•</span>
+                  <span style={{ color: 'var(--peach)', fontWeight: 900, flexShrink: 0, marginTop: '2px' }}>•</span>
                   {ing}
                 </li>
               ))}
@@ -99,7 +121,7 @@ export default function RecipeDetail({ recipe, onClose, onEdit, onDelete }) {
         {/* Steps */}
         {steps.length > 0 && (
           <section style={{ padding: '0 1.5rem 1rem' }}>
-            <h3 style={{ fontSize: '1rem', fontWeight: 900, color: 'var(--peach-dim)', marginBottom: '0.875rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <h3 style={{ fontSize: '1rem', fontWeight: 900, color: 'var(--peach-dim)', marginBottom: '0.875rem' }}>
               👩‍🍳 הכנה
             </h3>
             <ol style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
@@ -107,8 +129,8 @@ export default function RecipeDetail({ recipe, onClose, onEdit, onDelete }) {
                 <li key={i} style={{ display: 'flex', gap: '0.875rem', alignItems: 'flex-start' }}>
                   <span style={{
                     background: 'var(--peach)', color: '#fff', borderRadius: '50%',
-                    width: '28px', height: '28px', display: 'flex', alignItems: 'center',
-                    justifyContent: 'center', fontWeight: 900, fontSize: '0.82rem', flexShrink: 0, marginTop: '1px',
+                    width: '26px', height: '26px', display: 'flex', alignItems: 'center',
+                    justifyContent: 'center', fontWeight: 900, fontSize: '0.8rem', flexShrink: 0, marginTop: '2px',
                   }}>{i + 1}</span>
                   <p style={{ fontSize: '0.9rem', color: 'var(--text)', lineHeight: 1.6, fontWeight: 500, paddingTop: '2px' }}>{step}</p>
                 </li>
@@ -132,20 +154,13 @@ export default function RecipeDetail({ recipe, onClose, onEdit, onDelete }) {
           <button onClick={onEdit} style={{
             background: 'var(--peach-light)', color: 'var(--peach-dim)',
             borderRadius: '99px', padding: '0.55rem 1.25rem',
-            fontWeight: 800, fontSize: '0.875rem', transition: 'all 0.2s',
-          }}
-          onMouseEnter={e => e.currentTarget.style.background = 'var(--peach)' }
-          onMouseLeave={e => e.currentTarget.style.background = 'var(--peach-light)' }
-          >
-            ✏️ עריכה
-          </button>
+            fontWeight: 800, fontSize: '0.875rem',
+          }}>✏️ עריכה</button>
           <button onClick={() => { if (window.confirm('למחוק את המתכון?')) onDelete(); }} style={{
             background: 'var(--rose-light)', color: 'var(--rose)',
             borderRadius: '99px', padding: '0.55rem 1.25rem',
-            fontWeight: 800, fontSize: '0.875rem', transition: 'all 0.2s',
-          }}>
-            🗑️ מחיקה
-          </button>
+            fontWeight: 800, fontSize: '0.875rem',
+          }}>🗑️ מחיקה</button>
         </div>
       </div>
     </div>

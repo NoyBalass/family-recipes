@@ -13,13 +13,13 @@ export default function Header({ search, onSearch, onAdd }) {
         {/* Title */}
         <div style={{ flex: 1 }}>
           <h1 style={{
-            fontSize: '1.3rem', fontWeight: 900, color: 'var(--peach-dim)',
-            lineHeight: 1, margin: 0,
+            fontSize: '1.15rem', fontWeight: 900, color: 'var(--peach-dim)',
+            lineHeight: 1.2, margin: 0,
           }}>
-            📖 ספר המתכונים
+            📖 מה יש לאכול?
           </h1>
-          <p style={{ fontSize: '0.72rem', color: 'var(--text-dim)', fontWeight: 600, marginTop: '1px' }}>
-            של המשפחה 💛
+          <p style={{ fontSize: '0.72rem', color: 'var(--text-dim)', fontWeight: 600, marginTop: '2px' }}>
+            ספר המתכונים של משפחת בלס
           </p>
         </div>
 
