@@ -5,6 +5,7 @@ import RecipeCard from './components/RecipeCard';
 import RecipeDetail from './components/RecipeDetail';
 import AddEditRecipe from './components/AddEditRecipe';
 import Header from './components/Header';
+import LandingPanel from './components/LandingPanel';
 
 const PAGE_SIZE = 12;
 
@@ -50,7 +51,12 @@ export default function App() {
     await loadRecipes();
   }
 
-  const categories = ['הכל', ...Array.from(new Set(recipes.map(r => r.category).filter(Boolean)))];
+  const categories    = ['הכל', ...Array.from(new Set(recipes.map(r => r.category).filter(Boolean)))];
+  const totalMissing  = recipes.filter(r =>
+    r.category !== 'קל קל קל' &&
+    (!r.ingredients || r.ingredients.length === 0) &&
+    (!r.steps || r.steps.length === 0)
+  ).length;
 
   const filtered = recipes.filter(r => {
     const matchCat = category === 'הכל' || r.category === category;
@@ -75,24 +81,14 @@ export default function App() {
         onAdd={() => { setEditing(null); setShowAdd(true); }}
       />
 
-      {/* Category pills */}
-      <div style={{
-        display: 'flex', gap: '0.5rem', padding: '1rem 1.25rem 0.75rem',
-        overflowX: 'auto', scrollbarWidth: 'none', msOverflowStyle: 'none',
-      }}>
-        {categories.map(cat => (
-          <button key={cat} onClick={() => setCategory(cat)} style={{
-            padding: '0.4rem 1rem', borderRadius: '99px', fontSize: '0.875rem',
-            fontWeight: 700, whiteSpace: 'nowrap', transition: 'all 0.2s',
-            background: category === cat ? 'var(--peach)' : 'var(--surface)',
-            color: category === cat ? '#fff' : 'var(--text-mid)',
-            boxShadow: category === cat ? '0 2px 12px rgba(244,162,97,0.35)' : 'var(--shadow)',
-            border: category === cat ? 'none' : '1.5px solid var(--border)',
-          }}>
-            {cat}
-          </button>
-        ))}
-      </div>
+      <LandingPanel
+        recipes={recipes}
+        categories={categories}
+        category={category}
+        onCategoryChange={setCategory}
+        totalMissing={totalMissing}
+        onAdd={() => { setEditing(null); setShowAdd(true); }}
+      />
 
       {loading ? (
         <div style={{ textAlign: 'center', padding: '5rem 1rem', color: 'var(--text-dim)' }}>
