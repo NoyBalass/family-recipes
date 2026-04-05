@@ -9,6 +9,7 @@ import LandingPanel from './components/LandingPanel';
 import MissingRecipesModal from './components/MissingRecipesModal';
 
 const PAGE_SIZE = 12;
+const CATEGORY_ORDER = ['סלטים', 'תבשילים', 'לחמים חלות ומאפים', 'עוגות עוגיות וקינוחים', 'שונות', 'קל קל קל'];
 
 export default function App() {
   const [recipes, setRecipes]   = useState([]);
@@ -36,6 +37,16 @@ export default function App() {
 
   useEffect(() => { loadRecipes(); }, []);
 
+  // Deep-link: open recipe if ?recipe=<id> is in URL
+  useEffect(() => {
+    if (!recipes.length) return;
+    const id = new URLSearchParams(window.location.search).get('recipe');
+    if (id) {
+      const found = recipes.find(r => r.id === id);
+      if (found) setSelected(found);
+    }
+  }, [recipes]);
+
   async function saveRecipe(data) {
     if (editing) {
       await updateDoc(doc(db, 'recipes', editing.id), { ...data, updatedAt: new Date().toISOString() });
@@ -53,7 +64,12 @@ export default function App() {
     await loadRecipes();
   }
 
-  const categories    = Array.from(new Set(recipes.map(r => r.category).filter(Boolean)));
+  const categories = Array.from(new Set(recipes.map(r => r.category).filter(Boolean)))
+    .sort((a, b) => {
+      const ai = CATEGORY_ORDER.indexOf(a);
+      const bi = CATEGORY_ORDER.indexOf(b);
+      return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
+    });
   const missingRecipes = recipes.filter(r =>
     r.category !== 'קל קל קל' &&
     (!r.ingredients || r.ingredients.length === 0) &&

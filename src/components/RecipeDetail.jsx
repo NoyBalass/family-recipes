@@ -43,6 +43,7 @@ function BulletRow({ text, cookingMode }) {
 export default function RecipeDetail({ recipe, onClose, onEdit, onDelete }) {
   const [cookingMode, setCookingMode]   = useState(false);
   const [wakeLockOn,  setWakeLockOn]    = useState(false);
+  const [copied,      setCopied]        = useState(false);
   const [timerSecs,   setTimerSecs]     = useState(5 * 60); // default 5 min
   const [timerRunning, setTimerRunning] = useState(false);
   const [timerDone,   setTimerDone]     = useState(false);
@@ -87,6 +88,16 @@ export default function RecipeDetail({ recipe, onClose, onEdit, onDelete }) {
     setCookingMode(v => !v);
   }
 
+  // Re-acquire wake lock if page regains visibility while cooking mode is on
+  useEffect(() => {
+    if (!cookingMode) return;
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') acquireWakeLock();
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, [cookingMode]);
+
   // Clean up wake lock when modal closes
   useEffect(() => () => { releaseWakeLock(); clearInterval(timerRef.current); }, []);
 
@@ -112,6 +123,17 @@ export default function RecipeDetail({ recipe, onClose, onEdit, onDelete }) {
   function resetTimer()  { clearInterval(timerRef.current); setTimerRunning(false); setTimerDone(false); setTimerSecs(5 * 60); }
   function addMinute()   { if (!timerRunning) setTimerSecs(s => s + 60); }
   function subMinute()   { if (!timerRunning) setTimerSecs(s => Math.max(60, s - 60)); }
+
+  async function shareRecipe() {
+    const url = `${window.location.origin}${window.location.pathname}?recipe=${recipe.id}`;
+    if (navigator.share) {
+      try { await navigator.share({ title: recipe.name, text: `❝ ${recipe.quote} ❞ — ${recipe.name}`, url }); } catch {}
+    } else {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  }
 
   const mm  = String(Math.floor(timerSecs / 60)).padStart(2, '0');
   const ss  = String(timerSecs % 60).padStart(2, '0');
@@ -331,8 +353,20 @@ export default function RecipeDetail({ recipe, onClose, onEdit, onDelete }) {
         )}
 
         {/* Actions */}
-        {!cookingMode && (
-          <div style={{ display: 'flex', gap: '0.75rem', padding: '0.5rem 1.5rem 0', justifyContent: 'flex-end' }}>
+        <div style={{ display: 'flex', gap: '0.75rem', padding: '0.5rem 1.5rem 0', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+          {/* Share — always visible */}
+          <button onClick={shareRecipe} style={{
+            background: copied ? 'var(--sage-light)' : 'var(--sky-light)',
+            color: copied ? 'var(--sage)' : 'var(--sky)',
+            borderRadius: '99px', padding: '0.55rem 1.25rem',
+            fontWeight: 800, fontSize: '0.875rem',
+            transition: 'all 0.2s',
+            border: `1.5px solid ${copied ? 'var(--sage)' : 'var(--sky)'}30`,
+          }}>
+            {copied ? '✓ הועתק!' : '🔗 שיתוף'}
+          </button>
+
+          {!cookingMode && <>
             <button onClick={onEdit} style={{
               background: 'var(--peach-light)', color: 'var(--peach-dim)',
               borderRadius: '99px', padding: '0.55rem 1.25rem',
@@ -343,8 +377,8 @@ export default function RecipeDetail({ recipe, onClose, onEdit, onDelete }) {
               borderRadius: '99px', padding: '0.55rem 1.25rem',
               fontWeight: 800, fontSize: '0.875rem',
             }}>🗑️ מחיקה</button>
-          </div>
-        )}
+          </>}
+        </div>
       </div>
     </div>
   );
