@@ -7,7 +7,7 @@ const CATEGORY_COLORS = {
   'קינוחים':       { bg: '#FFE8F0', accent: '#E8A0A0', emoji: '🍰' },
   'ממרחים':        { bg: '#E8F5E8', accent: '#60A060', emoji: '🫙' },
   'שתייה':         { bg: '#E0F4FF', accent: '#A8D1E7', emoji: '☕' },
-  'שונות':         { bg: '#F5E8FF', accent: '#C3A8D1', emoji: '🍳' },
+  'שונות':         { bg: '#F5E8FF', accent: '#C3A8D1', emoji: '🥤' },
   'default':       { bg: '#FFF3E8', accent: '#F4A261', emoji: '🍽️' },
 };
 

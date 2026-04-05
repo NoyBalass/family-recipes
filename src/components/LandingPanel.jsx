@@ -5,7 +5,7 @@ const CATEGORY_COLORS = {
   'תבשילים':                   { emoji: '🍲', accent: '#F4A261' },
   'לחמים חלות ומאפים':         { emoji: '🍞', accent: '#E8C84A' },
   'עוגות עוגיות וקינוחים':     { emoji: '🍰', accent: '#E8A0A0' },
-  'שונות':                     { emoji: '🍳', accent: '#C3A8D1' },
+  'שונות':                     { emoji: '🥤', accent: '#C3A8D1' },
   'קל קל קל':                  { emoji: '💡', accent: '#A8D1E7' },
   'הכל':                       { emoji: '📖', accent: '#F4A261' },
 };
@@ -20,7 +20,7 @@ const INSTRUCTIONS = [
 ];
 
 export default function LandingPanel({
-  recipes, categories, category, onCategoryChange, totalMissing, onAdd,
+  recipes, categories, category, onCategoryChange, totalMissing, onAdd, onShowMissing,
 }) {
   const [showInstructions, setShowInstructions] = useState(false);
 
@@ -32,7 +32,7 @@ export default function LandingPanel({
       {/* Stats row */}
       <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1rem' }}>
         <StatCard emoji="📖" value={totalReal} label="מתכונים בספר" accent="#F4A261" />
-        <StatCard emoji="✍️" value={totalMissing} label="עוד צריך להוסיף" accent="#E8A0A0" />
+        <StatCard emoji="✍️" value={totalMissing} label="עוד צריך להוסיף" accent="#E8A0A0" onClick={onShowMissing} clickable />
       </div>
 
       {/* Category pills */}
@@ -126,16 +126,26 @@ export default function LandingPanel({
   );
 }
 
-function StatCard({ emoji, value, label, accent }) {
+function StatCard({ emoji, value, label, accent, onClick, clickable }) {
   return (
-    <div style={{
-      flex: 1, background: 'var(--surface)', borderRadius: '14px',
-      padding: '0.875rem 1rem', border: `1.5px solid ${accent}30`,
-      display: 'flex', flexDirection: 'column', gap: '0.2rem',
-    }}>
+    <div
+      onClick={onClick}
+      style={{
+        flex: 1, background: 'var(--surface)', borderRadius: '14px',
+        padding: '0.875rem 1rem', border: `1.5px solid ${accent}30`,
+        display: 'flex', flexDirection: 'column', gap: '0.2rem',
+        cursor: clickable ? 'pointer' : 'default',
+        transition: clickable ? 'transform 0.15s, box-shadow 0.15s' : undefined,
+        boxShadow: 'var(--shadow)',
+      }}
+      onMouseEnter={e => { if (clickable) { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = 'var(--shadow-hover)'; }}}
+      onMouseLeave={e => { if (clickable) { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'var(--shadow)'; }}}
+    >
       <span style={{ fontSize: '1.4rem' }}>{emoji}</span>
       <span style={{ fontSize: '1.6rem', fontWeight: 900, color: accent, lineHeight: 1 }}>{value}</span>
-      <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-dim)' }}>{label}</span>
+      <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-dim)' }}>
+        {label}{clickable && value > 0 ? ' ←' : ''}
+      </span>
     </div>
   );
 }

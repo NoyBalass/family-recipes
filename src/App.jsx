@@ -6,6 +6,7 @@ import RecipeDetail from './components/RecipeDetail';
 import AddEditRecipe from './components/AddEditRecipe';
 import Header from './components/Header';
 import LandingPanel from './components/LandingPanel';
+import MissingRecipesModal from './components/MissingRecipesModal';
 
 const PAGE_SIZE = 12;
 
@@ -17,7 +18,8 @@ export default function App() {
   const [selected, setSelected] = useState(null);
   const [editing, setEditing]   = useState(null);
   const [showAdd, setShowAdd]   = useState(false);
-  const [page, setPage]         = useState(0);
+  const [page, setPage]           = useState(0);
+  const [showMissing, setShowMissing] = useState(false);
 
   async function loadRecipes() {
     setLoading(true);
@@ -52,11 +54,12 @@ export default function App() {
   }
 
   const categories    = ['הכל', ...Array.from(new Set(recipes.map(r => r.category).filter(Boolean)))];
-  const totalMissing  = recipes.filter(r =>
+  const missingRecipes = recipes.filter(r =>
     r.category !== 'קל קל קל' &&
     (!r.ingredients || r.ingredients.length === 0) &&
     (!r.steps || r.steps.length === 0)
-  ).length;
+  );
+  const totalMissing = missingRecipes.length;
 
   const filtered = recipes.filter(r => {
     const matchCat = category === 'הכל' || r.category === category;
@@ -88,6 +91,7 @@ export default function App() {
         onCategoryChange={setCategory}
         totalMissing={totalMissing}
         onAdd={() => { setEditing(null); setShowAdd(true); }}
+        onShowMissing={() => setShowMissing(true)}
       />
 
       {loading ? (
@@ -169,6 +173,14 @@ export default function App() {
           onClose={() => setSelected(null)}
           onEdit={() => { setEditing(selected); setSelected(null); setShowAdd(true); }}
           onDelete={() => deleteRecipe(selected.id)}
+        />
+      )}
+      {showMissing && (
+        <MissingRecipesModal
+          recipes={missingRecipes}
+          onClose={() => setShowMissing(false)}
+          onEdit={r => { setEditing(r); setShowAdd(true); setShowMissing(false); }}
+          onDelete={async id => { await deleteRecipe(id); }}
         />
       )}
       {(showAdd || editing) && (
